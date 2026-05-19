@@ -4,38 +4,48 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ระบบแผนที่พิกัดบ้านนักเรียน</title>
+    <!-- โหลด Tailwind CSS สำหรับจัดแต่งหน้าเว็บ -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- โหลด Leaflet CSS สำหรับแผนที่ -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600&display=swap" rel="stylesheet">
     <style>
+        /* ตั้งค่าฟอนต์หลักเป็น Sarabun */
+        body { font-family: 'Sarabun', sans-serif; background-color: #f3f4f6; }
         /* ตั้งค่าความสูงของแผนที่ */
-        #map { height: 600px; width: 100%; rounded-md: 0.5rem; }
-        body { font-family: 'Sarabun', sans-serif; }
+        #map { height: 600px; width: 100%; border-radius: 0.5rem; z-index: 10; }
+        .leaflet-popup-content-wrapper { border-radius: 0.5rem; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
+        .leaflet-popup-content { font-family: 'Sarabun', sans-serif; }
     </style>
 </head>
-<body class="bg-gray-100 min-h-screen">
+<body class="min-h-screen p-4 md:p-8">
 
-    <div class="container mx-auto px-4 py-6">
-        <div class="text-center mb-6">
-            <h1 class="text-3xl font-bold text-blue-800 flex items-center justify-center gap-2">
+    <div class="max-w-7xl mx-auto">
+        <!-- หัวข้อเว็บ -->
+        <header class="mb-6 text-center">
+            <h1 class="text-3xl font-bold text-blue-800 flex items-center justify-center gap-2 mb-2">
                 📍 ระบบปักหมุดพิกัดบ้านนักเรียน
             </h1>
-            <p class="text-gray-600 mt-1">ค้นหาตำแหน่ง นำทาง และจัดเก็บข้อมูลพิกัดบ้านนักเรียนอย่างเป็นระบบ</p>
-        </div>
+            <p class="text-gray-600">ค้นหาตำแหน่ง นำทาง และจัดการข้อมูลที่ตั้งบ้านนักเรียน</p>
+        </header>
 
+        <!-- ส่วนเนื้อหาหลัก: แบ่งซ้าย-ขวา (ปรับขนาดฝั่งซ้ายให้ใหญ่ขึ้นเป็น 5/12) -->
         <div class="flex flex-col md:flex-row gap-6">
             
+            <!-- ส่วนซ้าย: ฟอร์มกรอกข้อมูล และ รายชื่อนักเรียน -->
             <div class="w-full md:w-5/12 flex flex-col gap-4">
                 
+                <!-- 1. ฟอร์มเพิ่ม/แก้ไขข้อมูล -->
                 <div class="bg-white p-5 rounded-lg shadow-md border border-gray-200">
-                    <h2 id="formTitle" class="text-lg font-bold text-gray-800 mb-3 flex items-center gap-1">
+                    <h2 id="formTitle" class="text-lg font-bold text-gray-800 mb-4 flex items-center gap-1 border-b pb-2">
                         📍 เพิ่มตำแหน่งนักเรียนใหม่
                     </h2>
-                    <form id="addStudentForm" class="space-y-3">
+                    <form id="addStudentForm" class="space-y-4">
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">ชื่อ-นามสกุลนักเรียน (แนะนำให้ใส่ตัวเลขนำหน้า เช่น 1. นายสมชาย)</label>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">ชื่อ-นามสกุลนักเรียน (ใส่ตัวเลขนำหน้าได้)</label>
                             <input type="text" id="studentName" required class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="ตัวอย่าง: 1. ด.ช. สมเกียรติ รักเรียน">
                         </div>
-                        <div class="grid grid-cols-2 gap-3">
+                        <div class="grid grid-cols-2 gap-4">
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 mb-1">ละติจูด (Latitude)</label>
                                 <input type="number" id="latitude" step="any" required class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="เช่น 13.7563">
@@ -45,25 +55,27 @@
                                 <input type="number" id="longitude" step="any" required class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="เช่น 100.5018">
                             </div>
                         </div>
-                        <div class="flex gap-2 pt-1">
-                            <button type="submit" id="submitBtn" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-md shadow transition-colors">
+                        <div class="flex gap-2 pt-2">
+                            <button type="submit" id="submitBtn" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-md shadow transition duration-200">
                                 ปักหมุดและบันทึกข้อมูล
                             </button>
-                            <button type="button" id="cancelEditBtn" onclick="window.cancelEdit()" class="hidden bg-gray-500 hover:bg-gray-600 text-white font-medium py-2 px-4 rounded-md shadow transition-colors">
+                            <button type="button" id="cancelEditBtn" onclick="window.cancelEdit()" class="hidden bg-gray-500 hover:bg-gray-600 text-white font-medium py-2 px-4 rounded-md shadow transition duration-200">
                                 ยกเลิก
                             </button>
                         </div>
                     </form>
                 </div>
 
+                <!-- 2. รายชื่อนักเรียนที่มีในระบบ -->
                 <div class="bg-white p-5 rounded-lg shadow-md border border-gray-200 flex-1 flex flex-col min-h-[350px]">
                     <div class="flex justify-between items-center border-b pb-2 mb-3">
                         <h2 class="text-lg font-bold text-gray-800 flex items-center gap-2">
-                            📋 รายชื่อที่ตั้งบ้านนักเรียน 
+                            📋 รายชื่อนักเรียน
                             <span class="bg-blue-100 text-blue-800 text-xs font-semibold px-2.5 py-0.5 rounded-full" id="studentCount">0</span>
                         </h2>
                     </div>
-                    <div class="overflow-y-auto max-h-[380px] flex-1">
+                    <!-- รายชื่อ (Scrollable) -->
+                    <div class="overflow-y-auto max-h-[380px] flex-1 pr-2">
                         <ul id="studentList" class="divide-y divide-gray-200">
                             <li class="py-3 text-sm text-gray-500 text-center">กำลังโหลดข้อมูล...</li>
                         </ul>
@@ -72,23 +84,25 @@
 
             </div>
 
+            <!-- ส่วนขวา: แผนที่ (ปรับขนาดเนื้อหา 7/12) -->
             <div class="w-full md:w-7/12">
-                <div class="bg-white p-2 rounded-lg shadow-md border border-gray-200">
+                <div class="bg-white p-2 rounded-lg shadow-md border border-gray-200 relative">
                     <div id="map"></div>
                 </div>
-                <div class="mt-4 text-sm text-gray-500 bg-blue-50 p-4 rounded-md border border-blue-100 relative">
+                <div class="mt-4 text-sm text-gray-600 bg-blue-50 p-4 rounded-md border border-blue-100 relative shadow-sm">
+                    <!-- สถานะการเชื่อมต่อฐานข้อมูล -->
                     <div id="dbStatus" class="absolute top-3 right-3 flex items-center gap-1 text-yellow-600 font-semibold bg-yellow-100 px-2 py-1 rounded text-xs transition-colors">
                         <span class="relative flex h-2 w-2">
                           <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-yellow-400 opacity-75"></span>
                           <span class="relative inline-flex rounded-full h-2 w-2 bg-yellow-500"></span>
                         </span>
-                        กำลังเชื่อมต่อฐานข้อมูล...
+                        กำลังเชื่อมต่อ...
                     </div>
-                    <p class="font-bold text-blue-900 text-base mb-1">💡 ฟังก์ชันการใช้งานใหม่:</p>
-                    <ul class="list-disc pl-5 space-y-1 text-gray-700">
-                        <li><strong>ระบบเรียงลำดับตามตัวเลข:</strong> หากใส่ตัวเลขนำหน้าชื่อ ระบบจะเรียงจากน้อยไปมากให้อัตโนมัติ</li>
-                        <li><strong>ปุ่มแก้ไข (ปุ่มสีน้ำเงิน 📝):</strong> กดเพื่อแก้ไขข้อมูลนักเรียนคนเดิม แล้วกด "บันทึกการแก้ไข" เพื่ออัปเดตพิกัด</li>
-                        <li><strong>ปุ่มนำทาง (ปุ่มสีเขียว 🚗):</strong> กดเปิดแอป Google Maps บนมือถือเพื่อนำทางไปบ้านนักเรียนทันที</li>
+                    <p class="font-bold text-blue-900 text-base mb-2">💡 คู่มือการใช้งาน:</p>
+                    <ul class="list-disc pl-5 space-y-1">
+                        <li><strong>การจัดเรียง:</strong> ใส่ตัวเลขนำหน้าชื่อ ระบบจะเรียงจากน้อยไปมากให้อัตโนมัติ (เช่น "1. สมชาย")</li>
+                        <li><strong>การแก้ไข:</strong> กดไอคอน 📝 ท้ายชื่อ เพื่อแก้ไขพิกัดหรือชื่อของนักเรียนคนเดิม</li>
+                        <li><strong>การนำทาง:</strong> กดไอคอน 🚗 ในแผนที่หรือในรายชื่อ เพื่อเปิดแอป Google Maps นำทาง</li>
                     </ul>
                 </div>
             </div>
@@ -96,17 +110,19 @@
         </div>
     </div>
 
+    <!-- โหลด Leaflet JS -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
     
+    <!-- สคริปต์เชื่อมต่อ Firebase -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, collection, addDoc, deleteDoc, doc, onSnapshot, updateDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         // ========================================================
-        // ⚠️ สำคัญมาก: ใส่รหัสผ่าน Firebase Config ของคุณตรงนี้แทนที่ข้อความข้างล่าง
+        // 1. ตั้งค่าฐานข้อมูล Firebase (อัปเดตข้อมูลของคุณแล้ว)
         // ========================================================
-       let firebaseConfig = {
+        let firebaseConfig = {
             apiKey: "AIzaSyCO-C7MY1icDKWhgTo4J4m7NVz3leWZjOo",
             authDomain: "school-map-data.firebaseapp.com",
             projectId: "school-map-data",
@@ -116,44 +132,80 @@
             measurementId: "G-SY9Z3LNX71"
         };
 
-        // เริ่มต้นฐานข้อมูล
+        // (รองรับโหมด Preview)
+        let appId = 'student-map';
+        let isPreview = false;
+        if (typeof __firebase_config !== 'undefined') {
+            firebaseConfig = JSON.parse(__firebase_config);
+            appId = typeof __app_id !== 'undefined' ? __app_id : appId;
+            isPreview = true; 
+        }
+
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
+        let userId = null;
         
         let studentsData = [];
         let map;
         let markers = [];
-        let editId = null; // เก็บไอดีของนักเรียนที่กำลังแก้ไขข้อมูล
+        let editId = null;
 
-        // ไอคอนหมุดแผนที่
         const studentIcon = L.icon({
             iconUrl: 'https://cdn.rawgit.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-blue.png',
             shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
-            iconSize: [25, 41],
-            iconAnchor: [12, 41],
-            popupAnchor: [1, -34],
-            shadowSize: [41, 41]
+            iconSize: [25, 41], iconAnchor: [12, 41], popupAnchor: [1, -34], shadowSize: [41, 41]
         });
 
-        // 1. ตรวจสอบสิทธิ์การเชื่อมต่อ
-        signInAnonymously(auth).then(() => {
-            updateStatus("เชื่อมต่อฐานข้อมูลแล้ว", "green");
-            loadData();
-        }).catch((error) => {
-            console.error(error);
-            updateStatus("เชื่อมต่อฐานข้อมูลล้มเหลว", "red");
+        // กำหนด Collection
+        function getDbCollection() {
+            if (!userId) return null;
+            return isPreview ? collection(db, 'artifacts', appId, 'users', userId, 'students') : collection(db, 'students');
+        }
+
+        function getDbDoc(docId) {
+            if (!userId) return null;
+            return isPreview ? doc(db, 'artifacts', appId, 'users', userId, 'students', docId) : doc(db, 'students', docId);
+        }
+
+        // ========================================================
+        // 2. การยืนยันตัวตน
+        // ========================================================
+        const initAuth = async () => {
+            try {
+                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                    await signInWithCustomToken(auth, __initial_auth_token);
+                } else {
+                    await signInAnonymously(auth);
+                }
+            } catch (error) {
+                console.error("Auth Error:", error);
+                updateStatus("เชื่อมต่อล้มเหลว", "red");
+            }
+        };
+        initAuth();
+
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                userId = user.uid;
+                updateStatus("เชื่อมต่อฐานข้อมูลแล้ว", "green");
+                loadDataFromFirestore();
+            } else {
+                userId = null;
+            }
         });
 
         function updateStatus(text, color) {
             const statusDiv = document.getElementById('dbStatus');
             if(statusDiv) {
                 statusDiv.className = `absolute top-3 right-3 flex items-center gap-1 font-semibold px-2 py-1 rounded text-xs text-${color}-700 bg-${color}-100 transition-colors`;
-                statusDiv.innerHTML = `<span class="relative flex h-2 w-2"><span class="relative inline-flex rounded-full h-2 w-2 bg-${color}-500"></span></span> ${text}`;
+                statusDiv.innerHTML = `<span class="relative flex h-2 w-2">${color === 'green' ? '' : `<span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-${color}-400 opacity-75"></span>`}<span class="relative inline-flex rounded-full h-2 w-2 bg-${color}-500"></span></span> ${text}`;
             }
         }
 
-        // 2. สร้างแผนที่เริ่มต้น
+        // ========================================================
+        // 3. การจัดการแผนที่และข้อมูล
+        // ========================================================
         function initMap() {
             map = L.map('map').setView([13.7563, 100.5018], 6);
             L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -161,9 +213,11 @@
             }).addTo(map);
         }
 
-        // 3. ดึงข้อมูลแบบเรียลไทม์จาก Firebase
-        function loadData() {
-            onSnapshot(collection(db, 'students'), (snapshot) => {
+        function loadDataFromFirestore() {
+            const colRef = getDbCollection();
+            if (!colRef) return;
+
+            onSnapshot(colRef, (snapshot) => {
                 studentsData = snapshot.docs.map(doc => ({
                     id: doc.id,
                     name: doc.data().name,
@@ -171,7 +225,7 @@
                     lng: doc.data().lng
                 }));
 
-                // 🔥 ไฮไลท์: จัดเรียงข้อมูลตามตัวเลขนำหน้าชื่ออย่างถูกต้อง (Natural Sorting)
+                // เรียงลำดับตามตัวเลข
                 studentsData.sort((a, b) => a.name.localeCompare(b.name, undefined, {numeric: true, sensitivity: 'base'}));
 
                 renderMarkers();
@@ -179,7 +233,6 @@
             });
         }
 
-        // 4. วาดหมุดบนแผนที่
         function renderMarkers() {
             markers.forEach(marker => map.removeLayer(marker));
             markers = [];
@@ -191,9 +244,9 @@
                 const popupContent = `
                     <div class="text-center p-1">
                         <strong class="text-base text-blue-800 block mb-1">${student.name}</strong>
-                        <div class="text-xs text-gray-500 mb-2">พิกัด: ${student.lat.toFixed(5)}, ${student.lng.toFixed(5)}</div>
-                        <a href="https://www.google.com/maps/search/?api=1&query=${student.lat},${student.lng}" target="_blank" class="inline-flex items-center justify-center bg-green-500 hover:bg-green-600 text-white text-xs px-3 py-1.5 rounded font-medium shadow-sm transition-colors w-full gap-1">
-                            🚗 นำทางด้วย Google Maps
+                        <div class="text-xs text-gray-500 mb-3 border-t pt-1">พิกัด: ${student.lat.toFixed(5)}, ${student.lng.toFixed(5)}</div>
+                        <a href="https://www.google.com/maps/dir/?api=1&destination=${student.lat},${student.lng}" target="_blank" class="inline-flex items-center justify-center bg-green-500 hover:bg-green-600 text-white text-xs px-3 py-2 rounded font-medium shadow-sm transition-colors w-full gap-1" style="text-decoration: none;">
+                            🚗 นำทาง
                         </a>
                     </div>
                 `;
@@ -207,7 +260,6 @@
             }
         }
 
-        // 5. แสดงรายชื่อนักเรียนที่ฝั่งซ้าย
         function updateStudentList() {
             const listElement = document.getElementById('studentList');
             document.getElementById('studentCount').textContent = studentsData.length;
@@ -223,20 +275,20 @@
                 li.className = 'py-3 flex justify-between items-center hover:bg-gray-50 px-2 rounded-md transition-colors gap-2';
                 li.innerHTML = `
                     <div class="flex-1 min-w-0 cursor-pointer flex items-start gap-2" onclick="window.focusOnStudent(${student.lat}, ${student.lng})">
-                        <span class="bg-gray-200 text-gray-700 text-xs font-bold px-2 py-0.5 rounded mt-0.5">${index + 1}</span>
+                        <span class="bg-gray-200 text-gray-700 text-xs font-bold px-2 py-0.5 rounded mt-0.5 shadow-sm">${index + 1}</span>
                         <div class="min-w-0 flex-1">
                             <p class="text-sm font-semibold text-gray-900 truncate">${student.name}</p>
-                            <p class="text-xs text-gray-500 truncate">พิกัด: ${student.lat}, ${student.lng}</p>
+                            <p class="text-xs text-gray-500 truncate">${student.lat}, ${student.lng}</p>
                         </div>
                     </div>
                     <div class="flex items-center gap-1">
-                        <a href="https://www.google.com/maps/search/?api=1&query=${student.lat},${student.lng}" target="_blank" class="text-green-500 hover:text-green-700 bg-green-50 p-1.5 rounded-full" title="นำทาง">
+                        <a href="https://www.google.com/maps/dir/?api=1&destination=${student.lat},${student.lng}" target="_blank" class="text-green-500 hover:text-green-700 bg-green-50 hover:bg-green-100 p-2 rounded-full transition-colors" title="นำทาง">
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
                         </a>
-                        <button onclick="window.startEdit('${student.id}', '${student.name}', ${student.lat}, ${student.lng})" class="text-blue-500 hover:text-blue-700 bg-blue-50 p-1.5 rounded-full" title="แก้ไขข้อมูล">
+                        <button onclick="window.startEdit('${student.id}', '${student.name.replace(/'/g, "\\'")}', ${student.lat}, ${student.lng})" class="text-blue-500 hover:text-blue-700 bg-blue-50 hover:bg-blue-100 p-2 rounded-full transition-colors" title="แก้ไขข้อมูล">
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
                         </button>
-                        <button onclick="window.removeStudent('${student.id}', '${student.name}')" class="text-red-400 hover:text-red-600 bg-red-50 p-1.5 rounded-full" title="ลบข้อมูล">
+                        <button onclick="window.removeStudent('${student.id}', '${student.name.replace(/'/g, "\\'")}')" class="text-red-400 hover:text-red-600 bg-red-50 hover:bg-red-100 p-2 rounded-full transition-colors" title="ลบข้อมูล">
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
                         </button>
                     </div>
@@ -245,18 +297,14 @@
             });
         }
 
-        // ฟังก์ชันเมื่อคลิกชื่อแล้วให้เลื่อนแผนที่ไปหาหมุด
         window.focusOnStudent = function(lat, lng) {
             map.setView([lat, lng], 16);
             markers.forEach(marker => {
                 const pos = marker.getLatLng();
-                if(Math.abs(pos.lat - lat) < 0.00001 && Math.abs(pos.lng - lng) < 0.00001) {
-                    marker.openPopup();
-                }
+                if(Math.abs(pos.lat - lat) < 0.00001 && Math.abs(pos.lng - lng) < 0.00001) marker.openPopup();
             });
         };
 
-        // 🔥 ฟังก์ชันเข้าสู่โหมดแก้ไขข้อมูล
         window.startEdit = function(id, name, lat, lng) {
             editId = id;
             document.getElementById('studentName').value = name;
@@ -264,27 +312,29 @@
             document.getElementById('longitude').value = lng;
             
             document.getElementById('formTitle').innerHTML = '📝 แก้ไขข้อมูลนักเรียน';
-            document.getElementById('submitBtn').innerHTML = 'บันทึกการแก้ไขข้อมูล';
-            document.getElementById('submitBtn').className = 'flex-1 bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded-md shadow transition-colors';
+            const btn = document.getElementById('submitBtn');
+            btn.innerHTML = 'บันทึกการแก้ไขข้อมูล';
+            btn.className = 'flex-1 bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded-md shadow transition duration-200';
             document.getElementById('cancelEditBtn').classList.remove('hidden');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
             document.getElementById('studentName').focus();
         };
 
-        // 🔥 ฟังก์ชันยกเลิกการแก้ไขข้อมูล
         window.cancelEdit = function() {
             editId = null;
             document.getElementById('addStudentForm').reset();
             document.getElementById('formTitle').innerHTML = '📍 เพิ่มตำแหน่งนักเรียนใหม่';
-            document.getElementById('submitBtn').innerHTML = 'ปักหมุดและบันทึกข้อมูล';
-            document.getElementById('submitBtn').className = 'flex-1 bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-md shadow transition-colors';
+            const btn = document.getElementById('submitBtn');
+            btn.innerHTML = 'ปักหมุดและบันทึกข้อมูล';
+            btn.className = 'flex-1 bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-md shadow transition duration-200';
             document.getElementById('cancelEditBtn').classList.add('hidden');
         };
 
-        // ฟังก์ชันลบข้อมูล
         window.removeStudent = async function(id, name) {
+            if (!userId) return;
             if (confirm(`คุณต้องการลบข้อมูลของ "${name}" ใช่หรือไม่?`)) {
                 try {
-                    await deleteDoc(doc(db, 'students', id));
+                    await deleteDoc(getDbDoc(id));
                     if(editId === id) window.cancelEdit();
                 } catch (error) {
                     console.error("Delete Error:", error);
@@ -292,9 +342,12 @@
             }
         };
 
-        // การส่งฟอร์ม (ทั้งการเพิ่มใหม่ และ บันทึกการแก้ไข)
         document.getElementById('addStudentForm').addEventListener('submit', async function(e) {
             e.preventDefault();
+            if (!userId) {
+                updateStatus("กำลังรอเชื่อมต่อ...", "yellow");
+                return;
+            }
             
             const nameInput = document.getElementById('studentName').value.trim();
             const latInput = parseFloat(document.getElementById('latitude').value);
@@ -306,26 +359,19 @@
 
                 try {
                     if (editId) {
-                        // 🔥 กรณีอยู่ในโหมดแก้ไขข้อมูล: อัปเดตข้อมูลเดิมลง Firebase
-                        await updateDoc(doc(db, 'students', editId), {
-                            name: nameInput,
-                            lat: latInput,
-                            lng: lngInput
+                        await updateDoc(getDbDoc(editId), {
+                            name: nameInput, lat: latInput, lng: lngInput
                         });
                         window.cancelEdit();
                     } else {
-                        // กรณีโหมดเพิ่มปกติ: สร้างข้อมูลใหม่ลง Firebase
-                        await addDoc(collection(db, 'students'), {
-                            name: nameInput,
-                            lat: latInput,
-                            lng: lngInput,
-                            createdAt: new Date().toISOString()
+                        await addDoc(getDbCollection(), {
+                            name: nameInput, lat: latInput, lng: lngInput, createdAt: new Date().toISOString()
                         });
                         this.reset();
                     }
                     window.focusOnStudent(latInput, lngInput);
                 } catch (error) {
-                    console.error("Error writing document: ", error);
+                    console.error("Error: ", error);
                     alert("เกิดข้อผิดพลาดในการบันทึกข้อมูล");
                 } finally {
                     submitBtn.disabled = false;
@@ -333,7 +379,6 @@
             }
         });
 
-        // เปิดแผนที่เมื่อโหลดหน้าเว็บเสร็จ
         document.addEventListener('DOMContentLoaded', initMap);
     </script>
 </body>
